@@ -73,19 +73,19 @@ zrobWiersz <- function(w,wektorLinkow, miasto,data, remDr){
   
   Sys.sleep(1)
   pageFromSelenium <- remDr$getPageSource()[[1]] %>% rvest::read_html()
-  pageFromSelenium %>% html_elements(".css-8qi9av.eu6swcv19") %>% html_text()
+  cena <- pageFromSelenium %>% html_elements(".css-8qi9av.eu6swcv19") %>% html_text()
   
   v <- pageFromSelenium %>% html_elements(".css-1qzszy5.estckra8") %>% html_text()
   indexy <- seq(1,length(v))
   nazwyKolumn <- v[indexy %% 2 == 1]
-  wartości <- v[indexy %% 2 == 0]
+  wartosci <- v[indexy %% 2 == 0]
   
-  df1 <- data.frame(t(wartości))
+  df1 <- data.frame(t(wartosci))
   names(df1) <- nazwyKolumn
-  any(is.na(names(df1) ))
-  if(any(is.na(names(df1)))){
+  if(!any(is.na(names(df1)))){
     df1<- cbind(df1,miasto)
     df1<- cbind(df1,data=data)
+    df1<- cbind(cena=cena, df1)# To nie zostało sprawdzone jeszcze
   }
   
   df1
@@ -103,7 +103,7 @@ liczbalinkow <- length(wektorLinkow)
 l <- 1
 
 # W domu oczywiście zrobić fora do licby linkow
-for(l in 1:15){
+for(l in 1:5){
   skip <- FALSE
   tryCatch(
     temp <- zrobWiersz(l,wektorLinkow,miasto, data, remDr),
@@ -124,6 +124,39 @@ for(l in 1:15){
 
 
 View(miastaDF)
+
+
+#Hasło:  "!r23_pjatK_23!"#
+install.packages(c("DBI","RMySQL","rstudioapi"))
+install.packages("dplyr")
+library(DBI)
+library(RMySQL)
+library(rstudioapi)
+library(dplyr)
+
+View(miastaDF)
+con <- DBI::dbConnect(RMySQL::MySQL(), 
+                      encoding ="UTF-8",
+                      host = "51.83.185.240",
+                      user = "student",
+                      dbname = "rzajecia23",
+                      password ="!r23_pjatK_23!"#rstudioapi::askForPassword("Database password")
+)
+dbGetQuery(con,'SET NAMES utf8')
+dbGetQuery(con,'set character set "utf8"')
+
+#To nam wysyła do bazy naszego dataframe
+dbWriteTable(con, "gawronski_miasta", miastaDF, append = FALSE,overwrite=TRUE)
+
+#To nam ściąga tabelę z MySQLa
+dbListTables(con)
+gawronski <- tbl(con,"gawronski_miasta")
+
+#Odpytujemy
+gawronski%>%select(Powierzchnia)
+
+#To nam disconnectuje połączenie
+dbDisconnect(con)
 
 
 
